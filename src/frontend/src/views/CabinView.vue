@@ -6,6 +6,7 @@
   const cabin = ref(null)
   const bookedDates = ref([])
   const bookingRef = ref(null)
+  const bookingError = ref(false)
   const date = ref(null);
   const route = useRoute()
   const cabinId = route.params.cabinId
@@ -54,6 +55,7 @@
     axios.post('http://localhost:8080/api/booking', booking.value)
     .then(response => {
       bookingRef.value = response.data.id
+      bookingError.value = false;
       fetchCabin()
       date.value = null
       booking.value = {
@@ -69,7 +71,9 @@
       }
     })
     .catch(error => {
-      console.error('Something went wrong fetching the cabin!', error)
+      bookingRef.value = '';
+      bookingError.value = true;
+      console.error('Something went wrong creating the booking!', error)
     })
   }
 </script>
@@ -86,6 +90,9 @@
 
   <div v-if="bookingRef" class="alert alert-success" role="alert">
     Booking confirmed. Your booking reference is: {{ bookingRef }}
+  </div>
+  <div v-if="bookingError" class="alert alert-danger" role="alert">
+    Something went wrong with the booking. The selected dates might not be available. Please try choosing different dates.
   </div>
 
   <p>To make a booking, please fill out the contact form below with your details. This will help us process your request and confirm your booking as soon as possible.</p>

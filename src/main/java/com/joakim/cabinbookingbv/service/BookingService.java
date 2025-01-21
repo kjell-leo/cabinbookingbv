@@ -2,6 +2,7 @@ package com.joakim.cabinbookingbv.service;
 
 import com.joakim.cabinbookingbv.model.BookingDB;
 import com.joakim.cabinbookingbv.repository.BookingDBRepository;
+import com.joakim.cabinbookingbv.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,8 +21,11 @@ public class BookingService {
     public BookingDB getBookingById(Long id) {return bookingDBRepository.findById(id).orElse(null); }
 
     public BookingDB createBooking(BookingDB booking) {
-        BookingDB savedBooking = bookingDBRepository.save(booking);
-        return savedBooking;
+        if (!isBookingAvailable(booking.getDateFrom(), booking.getDateTo())) {
+            throw new RuntimeException("Selected dates are not available.");
+        }
+
+        return bookingDBRepository.save(booking);
     }
 
     public BookingDB updateBooking(Long id, BookingDB bookingDetails) {
@@ -35,13 +39,27 @@ public class BookingService {
         booking.setDateFrom(bookingDetails.getDateFrom());
         booking.setDateTo(bookingDetails.getDateTo());
 
-        BookingDB updatedBooking = bookingDBRepository.save(booking);
-
-        return updatedBooking;
+        return bookingDBRepository.save(booking);
     }
 
     public void deleteBooking(Long id) {
         bookingDBRepository.deleteById(id);
     }
+
+    public boolean isBookingAvailable(LocalDate dateFrom, LocalDate dateTo) {
+        List<BookingDB> existingBookings = bookingDBRepository.findAll();
+        List<LocalDate> requestedDates = DateUtils.getDatesBetween(dateFrom, dateTo);
+
+        for (BookingDB existingBooking : existingBookings) {
+            List<LocalDate> bookedDates = DateUtils.getDatesBetween(existingBooking.getDateFrom(), existingBooking.getDateTo());
+            for (LocalDate date : requestedDates) {
+                if (bookedDates.contains(date)) {
+                    return false; // Conflict found
+                }
+            }
+        }
+        return true; // No conflicts
+    }
+
 }
 
